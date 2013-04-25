@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">USB Mass Storage Enabler</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="title_activity_main">USB Mass Storage Enabler</string>
+    <string name="menu_about">About</string>
+    <string name="description">With this application you can easily toggle USB Mass Storage mode on or off for the microSD card in the device.\nYou cannot export the internal SD Card due to limitations put by Linux filesystems and the way USB Mass Storage works.\nThis application requires BusyBox, if you don\'t have it, install it from the Play Store.</string>
+    <string name="mtp_text">MTP</string>
+    <string name="ums_text">Mass Storage Mode</string>
+    <string name="mtp_success">Successfully set USB mode to MTP</string>
+    <string name="ums_success">Successfully set USB mode to USB Mass Storage mode, you should now see your SD card on your PC.</string>
+    <string name="confirm_unmount">The SD card seems to be exported over USB, just making sure, did you unmount/eject the SD Card from your PC?</string>
+    <string name="confirm_unmount_title">Hmm?</string>
+    <string name="current_state">Current state:</string>
+    <string name="incompatible_kernel">S3C Gadget not available in your kernel! Application disabled</string>
+    <string name="already_in">The device is already in %1$s!</string>
+    <string name="ums_mode">Mass Storage mode</string>
+    <string name="mtp_mode">MTP mode</string>
+    <string name="already_in_ums">The device is already in Mass Storage mode!</string>
+    <string name="already_in_mtp">The device is already in MTP mode!</string>
+    <string name="force_unmount_title">Failed to unmount!</string>
+    <string name="force_unmount_body">The microSD card failed to unmount, this is usually because an application is accessing it. You can either close the applications using the card, or force unmount it, would you like to force unmount it? (WARNING: This may cause data loss!)</string>
+    <string name="about_text">USB Mass Storage for SGSIII / SGNII\n\n© 2013\nMohammad Abu-Garbeyyeh\nLicensed under GPLv3\n\nThanks to d4fseeker and Sakaschi for the methods used to enable UMS.</string>
+    <string name="about_dialog_title">About</string>
+    <string name="menu_remount">Force mount SD card</string>
+    <string name="ums_shorthand">UMS %1$s</string>
+    <string name="on_text">on</string>
+    <string name="off_text">off</string>
+    <string name="donate_text">Donate</string>
+
+</resources>
