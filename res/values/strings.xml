@@ -31,4 +31,6 @@
     <string name="failed_to_run_command">Failed to run command. Please make sure your BusyBox installation has mountpoint available</string>
     <string name="error">Error</string>
     <string name="enable_ads">Enable Ads</string>
+    <string name="dialog_text_yes">Yes</string>
+    <string name="dialog_text_no">No</string>
 </resources>

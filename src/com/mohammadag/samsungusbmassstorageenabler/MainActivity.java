@@ -40,7 +40,7 @@ public class MainActivity extends Activity {
             "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun_ex/file",
             "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun/file",
             "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
-        };
+    };
 	
     public void createToast(String text) {
     	Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG).show();
@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
         		}
         		process.destroy();
         	} catch (Exception e) {
-                                // nothing
+        		e.printStackTrace();
         	}
         }
         return true;
@@ -131,23 +131,16 @@ public class MainActivity extends Activity {
     }
     
     private void showInstallBusybox() {
-		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-		 
-        // Setting Dialog Title
-        alertDialog.setTitle(getString(R.string.error));
- 
-        // Setting Dialog Message
-        alertDialog.setMessage(getString(R.string.is_busybox_installed));
- 
-        // Setting Positive "Yes" Button
-        alertDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+    	AlertDialog.Builder alertDialog =
+				new AlertDialog.Builder(MainActivity.this)
+    	.setTitle(getString(R.string.error))
+    	.setMessage(getString(R.string.is_busybox_installed))
+    	.setPositiveButton(R.string.dialog_text_yes, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
             	Toast.makeText(getApplicationContext(), R.string.failed_to_run_command, Toast.LENGTH_LONG).show();
             }
-        });
- 
-        // Setting Negative "NO" Button
-        alertDialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+        })
+        .setNegativeButton(R.string.dialog_text_no, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse("market://details?id=stericson.busybox"));
@@ -157,8 +150,7 @@ public class MainActivity extends Activity {
             	return;
             }
         });
- 
-        // Showing Alert Message
+		
         alertDialog.show();
 	}
 
@@ -201,18 +193,18 @@ public class MainActivity extends Activity {
     		suffixText = R.string.off_text;
     	
     	shortcutName = String.format(getString(R.string.ums_shorthand), getString(suffixText));
-		Parcelable iconResource = Intent.ShortcutIconResource.fromContext(this, R.drawable.ic_launcher);
+    	Parcelable iconResource = Intent.ShortcutIconResource.fromContext(this, R.drawable.ic_launcher);
 		
-		Intent intent = new Intent(this, MainActivity.class);
-		intent.putExtra("USBMode", mode);
-		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+    	Intent intent = new Intent(this, MainActivity.class);
+    	intent.putExtra("USBMode", mode);
+    	intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		
-		Intent shortcutIntent = new Intent();
-		shortcutIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, intent);
-		shortcutIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, shortcutName);
-		shortcutIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, iconResource);
-		setResult(RESULT_OK, shortcutIntent);
-		finish();
+    	Intent shortcutIntent = new Intent();
+    	shortcutIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, intent);
+    	shortcutIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, shortcutName);
+    	shortcutIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, iconResource);
+    	setResult(RESULT_OK, shortcutIntent);
+    	finish();
     }
     
     @Override
@@ -226,11 +218,12 @@ public class MainActivity extends Activity {
         testIfs3cExists();
         
         if (!isS3cAvailable()) {
-			Button mtpButton = (Button)findViewById(R.id.mtpButton);
+        	Button mtpButton = (Button)findViewById(R.id.mtpButton);
         	Button umsButton = (Button)findViewById(R.id.umsButton);
         	mtpButton.setEnabled(false);
         	umsButton.setEnabled(false);
         }
+        
         refreshState();
         
         toggleAds(enableAds);
@@ -314,30 +307,21 @@ public class MainActivity extends Activity {
     	}
     	String lunContents = readOutputFromCommand("cat " + _lunFilePath);
     	if (lunContents.length() > 1) {
-    		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-    		 
-            // Setting Dialog Title
-            alertDialog.setTitle(getString(R.string.confirm_unmount_title));
-     
-            // Setting Dialog Message
-            alertDialog.setMessage(getString(R.string.confirm_unmount));
-     
-            // Setting Positive "Yes" Button
-            alertDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+    		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this)
+    		.setTitle(getString(R.string.confirm_unmount_title))
+    		.setMessage(getString(R.string.confirm_unmount))
+    		.setPositiveButton(R.string.dialog_text_yes, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog,int which) {
                 	activateMTP();
                 	dialog.dismiss();
                 }
-            });
-     
-            // Setting Negative "NO" Button
-            alertDialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            })
+            .setNegativeButton(R.string.dialog_text_no, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                 	return;
                 }
             });
-     
-            // Showing Alert Message
+
             alertDialog.show();
     	} else {
     		activateMTP();
@@ -371,17 +355,17 @@ public class MainActivity extends Activity {
     	setBlockPath(blockPathVar);
     	boolean unmount = runRootCommand("busybox umount /mnt/extSdCard/");
     	if (!unmount) {
-    		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-            alertDialog.setTitle(getString(R.string.force_unmount_title));
-            alertDialog.setMessage(getString(R.string.force_unmount_body));
-            alertDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+    		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this)
+    		.setTitle(getString(R.string.force_unmount_title))
+    		.setMessage(getString(R.string.force_unmount_body))
+    		.setPositiveButton(R.string.dialog_text_yes, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog,int which) {
                 	runRootCommand("busybox umount -l /mnt/extSdCard/");
                 	activateUms();
                 }
-            });
+            })
  
-            alertDialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            .setNegativeButton(R.string.dialog_text_no, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                 	return;
                 }
@@ -410,15 +394,10 @@ public class MainActivity extends Activity {
 	}
 	
 	public void showAbout() {
-		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-		 
-        // Setting Dialog Title
-        alertDialog.setTitle(R.string.about_dialog_title);
- 
-        // Setting Dialog Message
-        alertDialog.setMessage(R.string.about_text);
- 
-        // Showing Alert Message
+		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this)
+		.setTitle(R.string.about_dialog_title)
+		.setMessage(R.string.about_text);
+		
         alertDialog.show();
 	}
 	
