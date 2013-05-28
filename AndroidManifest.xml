@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mohammadag.samsungusbmassstorageenabler"
-    android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionCode="3"
+    android:versionName="1.2" >
 
     <uses-sdk
         android:minSdkVersion="14"
         android:targetSdkVersion="17" />
     <uses-permission android:name="android.permission.ACCESS_SUPERUSER"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -26,6 +28,9 @@
         		<category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <!-- AdMobActivity definition -->
+		<activity android:name="com.google.ads.AdActivity"
+   			android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"/>
     </application>
 
 </manifest>

@@ -6,13 +6,18 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import com.google.ads.AdRequest;
+import com.google.ads.AdView;
+
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.preference.PreferenceManager;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,11 +33,13 @@ public class MainActivity extends Activity {
 	private String _blockPath;
 	private boolean _isCreatingShortcuts = false;
 	private boolean _isUsingShortcut = false;
+	private SharedPreferences mPreferences;
 	
     private String[] listOfLunFiles = {
             "/sys/devices/platform/s3c-usbgadget/gadget/lun0/file",
             "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun_ex/file",
-            "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun/file"
+            "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun/file",
+            "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
         };
 	
     public void createToast(String text) {
@@ -44,6 +51,7 @@ public class MainActivity extends Activity {
     		File file = new File(lunFilePath);
     		if (file.exists()) {
     			_lunFilePath = lunFilePath;
+    			Log.d("UMSEnabler", "Found lun file: " + lunFilePath);
     			setS3cAvailable(true);
     			return;
     		}
@@ -53,7 +61,7 @@ public class MainActivity extends Activity {
     	_lunFilePath = "";
     }
     
-    public static boolean runRootCommand(String command) {
+    private boolean runRootCommand(String command) {
         Process process = null;
         DataOutputStream os = null;
         try {
@@ -68,6 +76,10 @@ public class MainActivity extends Activity {
         	}
         } catch (Exception e) {
         	Log.d("*** DEBUG ***", "Unexpected error - Here is what I know: "+e.getMessage());
+        	
+        	if (command.contains("busybox"))
+        		showInstallBusybox();
+        	
         	return false;
         }
         finally {
@@ -85,6 +97,7 @@ public class MainActivity extends Activity {
     
     public String readOutputFromCommand(String command) {
     	StringBuffer theRun = null;
+    	boolean shouldShowError = false;
     	try {
     	    Process process = Runtime.getRuntime().exec(command);
 
@@ -100,17 +113,56 @@ public class MainActivity extends Activity {
     	    process.waitFor();
 
     	} catch (IOException e) {
-    	    throw new RuntimeException(e);
+    		shouldShowError = true;
+    	    e.printStackTrace();
     	} catch (InterruptedException e) {
-    	    throw new RuntimeException(e);
+    		shouldShowError = true;
+    	    e.printStackTrace();
+    	} catch (RuntimeException e) {
+    		shouldShowError = true;
     	}
+    	if (shouldShowError)
+    		showInstallBusybox();
+    	
     	if (theRun != null)
     	    return theRun.toString().trim();
     	else
     		return "";
     }
     
-    public boolean isMtpActivated() {
+    private void showInstallBusybox() {
+		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+		 
+        // Setting Dialog Title
+        alertDialog.setTitle(getString(R.string.error));
+ 
+        // Setting Dialog Message
+        alertDialog.setMessage(getString(R.string.is_busybox_installed));
+ 
+        // Setting Positive "Yes" Button
+        alertDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+            	Toast.makeText(getApplicationContext(), R.string.failed_to_run_command, Toast.LENGTH_LONG).show();
+            }
+        });
+ 
+        // Setting Negative "NO" Button
+        alertDialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse("market://details?id=stericson.busybox"));
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+
+                startActivity(intent);
+            	return;
+            }
+        });
+ 
+        // Showing Alert Message
+        alertDialog.show();
+	}
+
+	public boolean isMtpActivated() {
     	String config = readOutputFromCommand("getprop persist.sys.usb.config");
     	return config.contains("mtp");
     }
@@ -168,6 +220,9 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        mPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean enableAds = mPreferences.getBoolean("enable_ads", true);
+        
         testIfs3cExists();
         
         if (!isS3cAvailable()) {
@@ -177,6 +232,8 @@ public class MainActivity extends Activity {
         	umsButton.setEnabled(false);
         }
         refreshState();
+        
+        toggleAds(enableAds);
         
         Intent intent = getIntent();
         String action = intent.getAction();
@@ -199,6 +256,10 @@ public class MainActivity extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.activity_main, menu);
+        
+        MenuItem item = menu.findItem(R.id.enable_ads);
+        item.setChecked(mPreferences.getBoolean("enable_ads", true));
+        
         return true;
     }
     
@@ -216,6 +277,11 @@ public class MainActivity extends Activity {
     			Intent intent = new Intent(Intent.ACTION_VIEW, 
     					Uri.parse("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=N2ZF2MJFAVFUA"));
     			startActivity(intent);
+            	return true;
+            case R.id.enable_ads:
+            	toggleAds(!item.isChecked());
+            	mPreferences.edit().putBoolean("enable_ads", !item.isChecked()).commit();
+            	item.setChecked(!item.isChecked());
             	return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -257,7 +323,7 @@ public class MainActivity extends Activity {
             alertDialog.setMessage(getString(R.string.confirm_unmount));
      
             // Setting Positive "Yes" Button
-            alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+            alertDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog,int which) {
                 	activateMTP();
                 	dialog.dismiss();
@@ -265,7 +331,7 @@ public class MainActivity extends Activity {
             });
      
             // Setting Negative "NO" Button
-            alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+            alertDialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                 	return;
                 }
@@ -301,34 +367,26 @@ public class MainActivity extends Activity {
     		}
     	}
     	
-    	String blockPathVar = "/dev/block/vold/" + readOutputFromCommand("mountpoint -d /mnt/extSdCard/");
+    	String blockPathVar = "/dev/block/vold/" + readOutputFromCommand("busybox mountpoint -d /mnt/extSdCard/");
     	setBlockPath(blockPathVar);
-    	boolean unmount = runRootCommand("umount /mnt/extSdCard/");
+    	boolean unmount = runRootCommand("busybox umount /mnt/extSdCard/");
     	if (!unmount) {
     		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-   		 
-            // Setting Dialog Title
             alertDialog.setTitle(getString(R.string.force_unmount_title));
-     
-            // Setting Dialog Message
             alertDialog.setMessage(getString(R.string.force_unmount_body));
-     
-            // Setting Positive "Yes" Button
-            alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+            alertDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog,int which) {
-                	runRootCommand("umount -l /mnt/extSdCard/");
+                	runRootCommand("busybox umount -l /mnt/extSdCard/");
                 	activateUms();
                 }
             });
-     
-            // Setting Negative "NO" Button
-            alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+ 
+            alertDialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                 	return;
                 }
             });
      
-            // Showing Alert Message
             alertDialog.show();
     	} else {
     		activateUms();
@@ -362,5 +420,37 @@ public class MainActivity extends Activity {
  
         // Showing Alert Message
         alertDialog.show();
+	}
+	
+	private void toggleAds(boolean enable) {
+		if (enable) {
+			showAd();
+		} else {
+			hideAd();
+		}
+	}
+	 
+	private void showAd() {
+		final AdView adLayout = (AdView) findViewById(R.id.adView);
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				adLayout.setEnabled(true);
+				adLayout.setVisibility(View.VISIBLE);
+				adLayout.loadAd(new AdRequest());
+			}
+		});
+	}
+	 
+	 
+	private void hideAd() {
+		final AdView adLayout = (AdView) findViewById(R.id.adView);
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				adLayout.setEnabled(false);
+				adLayout.setVisibility(View.GONE);
+			}
+		});
 	}
 }

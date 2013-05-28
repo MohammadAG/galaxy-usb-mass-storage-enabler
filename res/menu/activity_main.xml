@@ -6,4 +6,5 @@
     
     <item android:id="@+id/menu_donate" android:title="@string/donate_text"></item><item android:id="@+id/force_remount" android:title="@string/menu_remount">
     </item>
+    <item android:id="@+id/enable_ads" android:checked="true" android:enabled="true" android:visible="true" android:checkable="true" android:title="@string/enable_ads"></item>
 </menu>
