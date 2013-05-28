@@ -28,12 +28,12 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	
-	private String _lunFilePath = null;
-	private boolean s3cAvailable = true;
-	private String _blockPath;
-	private boolean _isCreatingShortcuts = false;
-	private boolean _isUsingShortcut = false;
-	private SharedPreferences mPreferences;
+    private String _lunFilePath = null;
+    private boolean s3cAvailable = true;
+    private String _blockPath;
+    private boolean _isCreatingShortcuts = false;
+    private boolean _isUsingShortcut = false;
+    private SharedPreferences mPreferences;
 	
     private String[] listOfLunFiles = {
             "/sys/devices/platform/s3c-usbgadget/gadget/lun0/file",
@@ -236,14 +236,14 @@ public class MainActivity extends Activity {
         	_isCreatingShortcuts = true;
         }
         	
-		if (extras != null && extras.containsKey("USBMode")) {
-			_isUsingShortcut = true;
-			String USBMode = extras.getString("USBMode");
-			if (USBMode.equals("UMS"))
-				onUMSButtonClicked(null);
-			else if (USBMode.equals("MTP"))
-				onMTPButtonClicked(null);
-		}
+        if (extras != null && extras.containsKey("USBMode")) {
+        	_isUsingShortcut = true;
+        	String USBMode = extras.getString("USBMode");
+        	if (USBMode.equals("UMS"))
+        		onUMSButtonClicked(null);
+        	else if (USBMode.equals("MTP"))
+        		onMTPButtonClicked(null);
+        }
     }
 
     @Override
@@ -283,9 +283,9 @@ public class MainActivity extends Activity {
     
     private void forceRemount() {
     	runRootCommand("vold");
-	}
+    }
 
-	public void activateMTP() {
+    public void activateMTP() {
     	if (isMtpActivated()) {
     		runRootCommand("setprop persist.sys.usb.config mtp,adb");
     		createToast(String.format(getString(R.string.already_in), getString(R.string.mtp_mode)));
@@ -377,21 +377,21 @@ public class MainActivity extends Activity {
     	}
     }
 
-	public boolean isS3cAvailable() {
+    public boolean isS3cAvailable() {
 		return s3cAvailable;
 	}
 
-	public void setS3cAvailable(boolean s3cAvailable) {
+    public void setS3cAvailable(boolean s3cAvailable) {
 		this.s3cAvailable = s3cAvailable;
 	}
 
-	public String getBlockPath() {
+    public String getBlockPath() {
 		return _blockPath;
-	}
+    }
 
-	public void setBlockPath(String blockPath) {
+    public void setBlockPath(String blockPath) {
 		_blockPath = blockPath;
-	}
+    }
 	
 	public void showAbout() {
 		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this)
@@ -399,17 +399,17 @@ public class MainActivity extends Activity {
 		.setMessage(R.string.about_text);
 		
         alertDialog.show();
-	}
+    }
 	
-	private void toggleAds(boolean enable) {
+    private void toggleAds(boolean enable) {
 		if (enable) {
 			showAd();
 		} else {
 			hideAd();
 		}
-	}
+    }
 	 
-	private void showAd() {
+    private void showAd() {
 		final AdView adLayout = (AdView) findViewById(R.id.adView);
 		runOnUiThread(new Runnable() {
 			@Override
@@ -419,10 +419,10 @@ public class MainActivity extends Activity {
 				adLayout.loadAd(new AdRequest());
 			}
 		});
-	}
+    }
 	 
 	 
-	private void hideAd() {
+    private void hideAd() {
 		final AdView adLayout = (AdView) findViewById(R.id.adView);
 		runOnUiThread(new Runnable() {
 			@Override
@@ -431,5 +431,5 @@ public class MainActivity extends Activity {
 				adLayout.setVisibility(View.GONE);
 			}
 		});
-	}
+    }
 }
