@@ -1,23 +1,18 @@
 package com.mohammadag.samsungusbmassstorageenabler;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
 
-import com.google.ads.AdRequest;
-import com.google.ads.AdView;
-
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Parcelable;
-import android.preference.PreferenceManager;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Parcelable;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,11 +21,16 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.ads.AdRequest;
+import com.google.ads.AdView;
+import com.stericson.RootTools.RootTools;
+import com.stericson.RootTools.execution.CommandCapture;
+
 public class MainActivity extends Activity {
 	
     private String _lunFilePath = null;
     private boolean s3cAvailable = true;
-    private String _blockPath;
+    private String _blockPath = "";
     private boolean _isCreatingShortcuts = false;
     private boolean _isUsingShortcut = false;
     private SharedPreferences mPreferences;
@@ -39,7 +39,8 @@ public class MainActivity extends Activity {
             "/sys/devices/platform/s3c-usbgadget/gadget/lun0/file",
             "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun_ex/file",
             "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun/file",
-            "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+            "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file",
+            "/sys/devices/platform/msm_hsusb/gadget/lun0/file" // Galaxy S4 (SCH-I545)
     };
 	
     public void createToast(String text) {
@@ -61,43 +62,19 @@ public class MainActivity extends Activity {
     	_lunFilePath = "";
     }
     
-    private boolean runRootCommand(String command) {
-        Process process = null;
-        DataOutputStream os = null;
-        try {
-        	process = Runtime.getRuntime().exec("su");
-        	os = new DataOutputStream(process.getOutputStream());
-        	os.writeBytes(command+"\n");
-        	os.writeBytes("exit\n");
-        	os.flush();
-        	process.waitFor();
-        	if (process.exitValue() != 0) {
-        		return false;
-        	}
-        } catch (Exception e) {
-        	Log.d("*** DEBUG ***", "Unexpected error - Here is what I know: "+e.getMessage());
-        	
-        	if (command.contains("busybox"))
-        		showInstallBusybox();
-        	
-        	return false;
-        }
-        finally {
-        	try {
-        		if (os != null) {
-        			os.close();
-        		}
-        		process.destroy();
-        	} catch (Exception e) {
-        		e.printStackTrace();
-        	}
-        }
-        return true;
+    private boolean runRootCommand(String... commandString) {
+    	Log.d("SGUSB", "Executing command:" + commandString[0]);
+    	CommandCapture command = new CommandCapture(0, commandString);
+    	try {
+			RootTools.getShell(true).add(command).waitForFinish();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    	return true;
     }
     
     public String readOutputFromCommand(String command) {
     	StringBuffer theRun = null;
-    	boolean shouldShowError = false;
     	try {
     	    Process process = Runtime.getRuntime().exec(command);
 
@@ -111,23 +88,17 @@ public class MainActivity extends Activity {
     	    }
     	    reader.close();
     	    process.waitFor();
+    	    process.destroy();
 
-    	} catch (IOException e) {
-    		shouldShowError = true;
+    	} catch (Exception e) {
     	    e.printStackTrace();
-    	} catch (InterruptedException e) {
-    		shouldShowError = true;
-    	    e.printStackTrace();
-    	} catch (RuntimeException e) {
-    		shouldShowError = true;
     	}
-    	if (shouldShowError)
-    		showInstallBusybox();
     	
-    	if (theRun != null)
+    	if (theRun != null) {
     	    return theRun.toString().trim();
-    	else
+    	} else {
     		return "";
+    	}
     }
     
     private void showInstallBusybox() {
@@ -142,11 +113,7 @@ public class MainActivity extends Activity {
         })
         .setNegativeButton(R.string.dialog_text_no, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(Uri.parse("market://details?id=stericson.busybox"));
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NO_ANIMATION);
-
-                startActivity(intent);
+            	RootTools.offerBusyBox(MainActivity.this);
             	return;
             }
         });
@@ -244,6 +211,27 @@ public class MainActivity extends Activity {
         	else if (USBMode.equals("MTP"))
         		onMTPButtonClicked(null);
         }
+        
+        // Don't slow down shortcut startup
+        if (!_isUsingShortcut) {
+            if (!RootTools.isRootAvailable()) {
+        		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this)
+        		.setTitle(getString(R.string.error))
+        		.setMessage(getString(R.string.error_root_not_available))
+        		.setPositiveButton(R.string.dialog_text_quit, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog,int which) {
+                    	dialog.dismiss();
+                    	finish();
+                    }
+                });
+
+                alertDialog.show();
+            } else {
+                if (!RootTools.isBusyboxAvailable()) {
+                	showInstallBusybox();
+                }
+            }
+        }
     }
 
     @Override
@@ -291,7 +279,18 @@ public class MainActivity extends Activity {
     		createToast(String.format(getString(R.string.already_in), getString(R.string.mtp_mode)));
     		return;
     	}
-    	runRootCommand("echo \"\" > " + _lunFilePath + "\nsetprop persist.sys.usb.config mtp,adb\nvold");
+    	
+    	CommandCapture command = new CommandCapture(0,
+    			"echo \"\" > " + _lunFilePath,
+    			"setprop persist.sys.usb.config mtp,adb",
+    			"vold");
+    	try {
+			RootTools.getShell(true).add(command).waitForFinish();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    
     	createToast(getString(R.string.mtp_success));
     	
     	refreshState();
@@ -351,30 +350,68 @@ public class MainActivity extends Activity {
     		}
     	}
     	
-    	String blockPathVar = "/dev/block/vold/" + readOutputFromCommand("busybox mountpoint -d /mnt/extSdCard/");
-    	setBlockPath(blockPathVar);
-    	boolean unmount = runRootCommand("busybox umount /mnt/extSdCard/");
-    	if (!unmount) {
-    		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this)
-    		.setTitle(getString(R.string.force_unmount_title))
-    		.setMessage(getString(R.string.force_unmount_body))
-    		.setPositiveButton(R.string.dialog_text_yes, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog,int which) {
-                	runRootCommand("busybox umount -l /mnt/extSdCard/");
-                	activateUms();
-                }
-            })
- 
-            .setNegativeButton(R.string.dialog_text_no, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int which) {
-                	return;
-                }
-            });
-     
-            alertDialog.show();
-    	} else {
-    		activateUms();
+    	String oldBlockPath = getBlockPath();
+    	
+    	final String blockPathVar = "/dev/block/vold/";
+    	String blockId = readOutputFromCommand("busybox mountpoint -d /mnt/extSdCard/");
+    	Log.d("SGUSB", blockId);
+    	setBlockPath(blockPathVar + blockId);
+    	
+    	if (blockId.startsWith("0:")) {
+    		if (oldBlockPath != null && oldBlockPath.isEmpty()) {
+				AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this)
+				.setTitle(getString(R.string.error))
+				.setMessage(getString(R.string.error_getting_block_id_no_sd_card))
+				.setPositiveButton(R.string.dialog_text_ok, new DialogInterface.OnClickListener() {
+			        public void onClick(DialogInterface dialog,int which) {
+			        	dialog.dismiss();
+			        }
+			    });
+    
+			    alertDialog.show();
+			    return;
+    		} else if (oldBlockPath != null && !oldBlockPath.isEmpty()) {
+    			// Hide this so as not to confuse the user.
+    			// createToast(getString(R.string.error_getting_block_id_retrying_old_one));
+    			setBlockPath(oldBlockPath);
+    		}
     	}
+    	
+    	// boolean unmount = runRootCommand("busybox umount /mnt/extSdCard/");
+    	CommandCapture command = new CommandCapture(0, "busybox umount /mnt/extSdCard/");
+    	try {
+			RootTools.getShell(true).add(command).waitForFinish();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	try {
+			if (command.exitCode() != 0) {
+				AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this)
+				.setTitle(getString(R.string.force_unmount_title))
+				.setMessage(getString(R.string.force_unmount_body))
+				.setPositiveButton(R.string.dialog_text_yes, new DialogInterface.OnClickListener() {
+			        public void onClick(DialogInterface dialog,int which) {
+			        	runRootCommand("busybox umount -l /mnt/extSdCard/");
+			        	activateUms();
+			        }
+			    })
+ 
+			    .setNegativeButton(R.string.dialog_text_no, new DialogInterface.OnClickListener() {
+			        public void onClick(DialogInterface dialog, int which) {
+			        	return;
+			        }
+			    });
+    
+			    alertDialog.show();
+			} else {
+				activateUms();
+			}
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     public boolean isS3cAvailable() {

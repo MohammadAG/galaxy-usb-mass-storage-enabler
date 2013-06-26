@@ -33,4 +33,9 @@
     <string name="enable_ads">Enable Ads</string>
     <string name="dialog_text_yes">Yes</string>
     <string name="dialog_text_no">No</string>
+    <string name="dialog_text_ok">Ok</string>
+    <string name="error_getting_block_id_no_sd_card">"An error occurred while identifying the SD Card. The card is either not ready or there is no SD card inserted. If there is one inserted, please exit the application and try again, if it still doesn't work, please contact the developer via e-mail"</string>
+    <string name="error_getting_block_id_retrying_old_one">An error occurred while re-identifying the SD card, trying to use the old ID</string>
+    <string name="error_root_not_available">&quot;Your device doesn't seem to be rooted, this application requires root to work.&quot;</string>
+    <string name="dialog_text_quit">Quit</string>
 </resources>
